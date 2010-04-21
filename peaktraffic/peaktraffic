@@ -1,0 +1,58 @@
+#!/usr/bin/python
+
+import sys
+
+class PeakTraffic(object):
+
+    def __init__(self):
+        self.clusters = []
+        self.graph = {}
+
+    def bronKerbosch(self,r,p,x):
+        """ http://en.wikipedia.org/wiki/Bron%E2%80%93Kerbosch_algorithm """
+        if len(p) == 0 and len(x) == 0:
+            if len(r) > 2:
+                cluster = ', '.join(sorted(list(r)))
+                self.clusters.append(cluster)
+            return
+
+        # choose a pivot from (p union x) with maximum degree
+        pivots = [(len(self.graph[v]), v) for v in p.union(x)]
+        degree,pivot = max(pivots)
+        for v in p.difference(self.graph[pivot]):
+            self.bronKerbosch(r | set([v]), p & self.graph[v], x & self.graph[v])
+            p -= set([v])
+            x |= set([v])
+
+    def input(self):
+        # thank you David Eisenstat and Kanwei Li #
+        oneway = {}
+        for line in open(sys.argv[1]):
+            fields = line.strip().split()
+            a,b = fields[-2],fields[-1]
+            if a == b:
+                continue
+            if a not in oneway:
+                oneway[a] = set()
+            oneway[a].add(b)
+            if b in oneway and a in oneway[b]:
+                if a not in self.graph:
+                    self.graph[a] = set()
+                self.graph[a].add(b)
+                if b not in self.graph:
+                    self.graph[b] = set()
+                self.graph[b].add(a)
+
+    def output(self):
+        self.clusters.sort()
+        for c in self.clusters:
+            print c
+
+    def run(self):
+        self.bronKerbosch(set(),set(self.graph.keys()),set())
+
+if __name__ == "__main__":
+    p = PeakTraffic()
+    p.input()
+    p.run()
+    p.output()

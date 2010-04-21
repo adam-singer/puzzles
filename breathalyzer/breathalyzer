@@ -1,0 +1,98 @@
+#!/usr/bin/python
+# submit to 1051962371@facebook.com
+
+import sys
+import os
+import re
+import cPickle
+import time
+import bktree
+
+alphabet = 'abcdefghijklmnopqrstuvwxyz'
+
+def edits1(word):
+   s          = [(word[:i], word[i:]) for i in range(len(word) + 1)]
+   deletes    = [a + b[1:] for a, b in s if b]
+   replaces   = [a + c + b[1:] for a, b in s for c in alphabet if b]
+   inserts    = [a + c + b     for a, b in s for c in alphabet]
+   return set(deletes + replaces + inserts)
+
+def words(text):
+    return re.findall('\w+', text.lower())
+
+def accepted(words):
+    d = {}
+    for w in words:
+        w = w.strip()
+        d[w] = True
+    return d
+
+class Breathalyzer(object):
+    accepted_words_file = "/var/tmp/twl06.txt"
+
+    def __init__(self):
+        t = time.time()
+        self.accepted_words = accepted(words(file(Breathalyzer.accepted_words_file).read()))
+        #print "%.2f" % (time.time() - t)
+        t = time.time()
+        pkl_file = open('fbdictionary.dat','rb')
+        self.tree = cPickle.load(pkl_file)
+        pkl_file.close()
+        #print "%.2f" % (time.time() - t)
+
+    def run(self, wallpost):
+        self.solution = 0
+        words = [ w for w in file(wallpost).read().split() if w not in self.accepted_words ]
+
+        # Norvig
+
+        leftovers = []
+        for word in words:
+            for w in edits1(word):
+                if w in self.accepted_words:
+                    self.solution += 1
+                    break
+            else:
+                leftovers.append(word)
+        
+        if len(leftovers) == 0:
+            return
+
+        # BK-Tree
+
+        seen = {}
+        for d in xrange(2, 40):
+            if len(leftovers) == 0:
+                break
+            words = leftovers
+            leftovers = []
+            for word in words:
+                if word in seen:
+                    self.solution += seen[word]
+                    continue
+                try:
+                    finder = self.tree.xfind(word,d)
+                    result = finder.next()
+                    self.solution += d
+                    seen[word] = d
+                except StopIteration:
+                    leftovers.append(word)
+                    
+        print self.solution
+                
+def main(argv=None):
+    
+    if argv is None:
+        argv = sys.argv
+
+    b = Breathalyzer()
+    for i in xrange(1, len(argv)):
+        if os.path.isfile(argv[i]):
+            b.run(argv[i])
+        else:
+            return -1
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

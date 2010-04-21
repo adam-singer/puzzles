@@ -1,0 +1,21 @@
+Spoiler alert: this is a solution to a programming problem/puzzle.
+
+Acknowlegments
+=============
+
+This was predominantly a translation of Kanwei Li's code to see if python
+performs better than ruby, and to understand the concepts behind the puzzle.
+
+Kanwei Li's code is at: http://kanwei.com/code/2009/03/21/facebook-swarm.html
+
+Thanks Kanwei!
+
+Also, thank you David Eisenstat for the test generator.
+
+Tidbits
+=======
+
+java Test 200903 > david.in
+python swarm david.in | java Filter | md5sum > checksum
+
+checksum = 6735efddb79918915981879cea66f0d4

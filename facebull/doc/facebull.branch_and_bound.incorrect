@@ -1,0 +1,277 @@
+#!/usr/bin/env python
+# Branch and bound solution to the Facebull problem
+# --------------------------------------------------------------------------------- #
+
+import time
+import cProfile
+import sys
+import os
+import re
+import operator
+from collections import defaultdict
+
+class PriorityDictionary(dict):
+    # Priority dictionary using binary heaps
+    # David Eppstein, UC Irvine, 8 Mar 2002
+
+    def __init__(self):
+        '''Initialize PriorityDictionary by creating binary heap
+        of pairs (value,key).  Note that changing or removing a dict entry will
+        not remove the old pair from the heap until it is found by smallest() or
+        until the heap is rebuilt.'''
+        self.__heap = []
+        dict.__init__(self)
+
+    def smallest(self):
+        '''Find smallest item after removing deleted items from heap.'''
+        if len(self) == 0:
+            raise IndexError, "smallest of empty PriorityDictionary"
+        heap = self.__heap
+        while heap[0][1] not in self or self[heap[0][1]] != heap[0][0]:
+            last_item = heap.pop()
+            insertion_point = 0
+            while 1:
+                small_child = 2*insertion_point+1
+                if small_child+1 < len(heap) and \
+                        heap[small_child] > heap[small_child+1]:
+                    small_child += 1
+                if small_child >= len(heap) or last_item <= heap[small_child]:
+                    heap[insertion_point] = last_item
+                    break
+                heap[insertion_point] = heap[small_child]
+                insertion_point = small_child
+        return heap[0][1]
+    
+    def __iter__(self):
+        '''Create destructive sorted iterator of PriorityDictionary.'''
+        def iterfn():
+            while len(self) > 0:
+                x = self.smallest()
+                yield x
+                del self[x]
+        return iterfn()
+    
+    def __setitem__(self,key,val):
+        '''Change value stored in dictionary and add corresponding
+        pair to heap.  Rebuilds the heap if the number of deleted items grows
+        too large, to avoid memory leakage.'''
+        dict.__setitem__(self,key,val)
+        heap = self.__heap
+        if len(heap) > 2 * len(self):
+            self.__heap = [(v,k) for k,v in self.iteritems()]
+            self.__heap.sort() # builtin sort likely faster than O(n) heapify
+        else:
+            new_pair = (val,key)
+            insertion_point = len(heap)
+            heap.append(None)
+            while insertion_point > 0 and new_pair < heap[(insertion_point-1)//2]:
+                heap[insertion_point] = heap[(insertion_point-1)//2]
+                insertion_point = (insertion_point-1)//2
+            heap[insertion_point] = new_pair
+    
+    def setdefault(self,key,val):
+        '''Reimplement setdefault to call our customized __setitem__.'''
+        if key not in self:
+            self[key] = val
+        return self[key]
+
+def dijkstra(G,start,end=None):
+    """
+    Dijkstra's algorithm for shortest paths
+    David Eppstein, UC Irvine, 4 April 2002
+    """
+
+    D = {} # dictionary of final distances
+    P = {} # dictionary of predecessors
+    Q = PriorityDictionary() # est.dist. of non-final vert.
+    Q[start] = 0
+    
+    for v in Q:
+        D[v] = Q[v]
+        if v == end:
+            break
+        
+        for w in G[v]:
+            vwLength = D[v] + G[v][w]
+            if w in D:
+                if vwLength < D[w]:
+                    raise ValueError, "Found better path to already-final vertex"
+            elif w not in Q or vwLength < Q[w]:
+                Q[w] = vwLength
+                P[w] = v
+    
+    return (D,P)
+            
+def prev_path(P,start,end):
+    Path = []
+    while True:
+        Path.append(end)
+        if end == start:
+            break
+        end = P[end]
+    Path.reverse()
+    return Path
+
+def shortest_path(G,start,end):
+    D,P = dijkstra(G,start,end)
+    return prev_path(P,start,end)
+
+def is_strongly_connected(g,num_vertices):
+    for s in g.keys():
+        D,P = dijkstra(g,s)
+        if len(D) != num_vertices:
+            return False
+    return True
+
+def vset(edges):
+    V = set()
+    for s,t in edges:
+        V.add(s)
+        V.add(t)
+    return V
+
+def load(edges,weights):
+    """ Add edges to graph """
+    g = {}
+    for s,t in edges:
+        if s in g:
+            g[s][t] = weights[(s,t)]
+        else:
+            g[s] = { t : weights[(s,t)] }
+        if t not in g:
+            g[t] = {}
+    return g
+
+class Facebull(object):
+
+    def __init__(self):
+        self.solution = None
+        self.prices = {}
+        self.names = {}
+
+    def solve(self):
+
+        """ Determine must-have edges """
+        edges = self.prices.keys()
+        vertices = vset(edges)
+        self.num_vertices = len(vertices)
+        must_haves = set()
+
+        """ Check for nodes with incoming/outgoing degree=1 """
+        sources = defaultdict(set)
+        sinks = defaultdict(set)
+        for s,d in edges:
+            sources[s].add(d)
+            sinks[d].add(s)
+
+        for k in sources:
+            if len(sources[k]) == 1:
+                must_haves.add((k,sources[k].pop()))
+
+        for k in sinks:
+            if len(sinks[k]) == 1:
+                must_haves.add((sinks[k].pop(),k))
+
+        remaining = set(edges) - must_haves
+        if not remaining:
+            self.solution = must_haves
+            return
+
+        self.solution = set(edges)
+
+        remaining = sorted([ (self.prices[e],e) for e in remaining ])
+        self.remaining = [ e for c,e in remaining ]
+        self.best_cost = sum(self.prices[e] for e in self.prices)
+        cost = sum(self.prices[e] for e in must_haves)
+        self.branch_and_bound(list(must_haves),True,0,cost)
+        self.branch_and_bound(list(must_haves),False,0,cost)
+
+    def branch_and_bound(self,selections,include,index,cost):
+        if index == len(self.remaining):
+            return
+
+        if include:
+
+            cost += self.prices[self.remaining[index]]
+            if cost >= self.best_cost:
+                return
+            selections = selections + [self.remaining[index]]
+            if self.num_vertices == len(set([s for (s,d) in selections])) \
+                    and self.num_vertices == len(set([d for (s,d) in selections])):
+                if is_strongly_connected(\
+                        load(selections,self.prices),self.num_vertices):
+                    self.best_cost = cost
+                    self.solution = set(selections)
+                    return
+
+        self.branch_and_bound(selections,True,index+1,cost)
+        self.branch_and_bound(selections,False,index+1,cost)
+
+    def output(self):
+
+        if self.solution is None:
+            print "No solution"
+            return None
+        return ' '.join([ str(x) for x in \
+            sorted([ self.names[i] for i in self.solution ]) ])
+
+    def input(self,f):
+
+        for line in file(f).readlines():
+            (name, src, dst, cost) = line.rstrip().split()
+            name = int(name.replace('M',''))
+            src = int(src.replace('C',''))
+            dst = int(dst.replace('C',''))
+            cost = int(cost)
+            self.prices[(src,dst)] = cost
+            self.names[(src,dst)] = name
+
+def testing(directory):
+
+    timer = time.time
+
+    infile = re.compile(r".*\.in$")
+    for f in os.listdir(directory):
+        if not infile.match(f):
+            continue
+        facebull = Facebull()
+        print f,
+        print "-->",
+        facebull.input(directory + os.sep + f)
+        t1 = timer()
+        facebull.solve()
+        t2 = timer()
+        ans = facebull.output()
+        (outfile, ext) = f.split('.')
+        fcheck = open(directory + os.sep + outfile + ".out")
+        line = fcheck.readline().strip()
+        line = fcheck.readline().strip()
+        if ans != line:
+            print "failure: %.2f" % (t2-t1)
+        else:
+            print "success: %.2f" % (t2-t1)
+
+def main(argv=None):
+    
+    if argv is None:
+        argv = sys.argv
+
+    if len(argv) != 2:
+        return -1
+
+    if os.path.isfile(argv[1]):
+        f = sys.argv[1]
+        facebull = Facebull()
+        facebull.input(f)
+        facebull.solve()
+        print sum([ facebull.prices[x] for x in facebull.solution ]) 
+        print facebull.output()
+        return 0
+    elif os.path.isdir(argv[1]):
+        testing(argv[1])
+        return 0
+    else:
+        return -1
+
+if __name__ == "__main__":
+    sys.exit(main())

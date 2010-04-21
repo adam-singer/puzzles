@@ -1,0 +1,13 @@
+gattaca-brute is the solution grabbed from
+
+http://www.simmoril.com/files/gattaca.py
+
+In no way is this solution my attempt at solving the problem. 
+This is the work of the poster (simmoril).
+
+This solution was too slow, so dynamic programming came to the rescue.
+
+The approach in gattaca is the one obtained here:
+www.cs.cornell.edu/courses/cs482/2007su/dynamic.pdf
+
+Note that the binary search for p[i] is crucial for O(nlogn) performance

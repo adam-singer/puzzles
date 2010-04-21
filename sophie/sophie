@@ -1,0 +1,83 @@
+#!/usr/bin/python
+# Passed puzzlebot with 1054.216 ms on its longest test case
+
+import sys
+
+def out(d):
+    print "%.2f" % (d)
+
+class Sophie(object):
+
+    def __init__(self,filename):
+        input = open(filename)
+        m = int(input.readline().strip())
+
+        adjMatrix = []
+        for i in range(m):
+            adjMatrix.append([])
+            for j in range(m):
+                adjMatrix[i].append(sys.maxint)
+
+        probs = [0] * m
+        names = {}
+
+        for i in range(m):
+            l,p = input.readline().strip().split()
+            p = float(p)
+            names[l] = i
+            probs[i] = p
+            adjMatrix[i][i] = 0
+
+        n = int(input.readline().strip())
+
+        for i in range(n):
+            src,dst,t = input.readline().strip().split()
+            s = names[src]
+            d = names[dst]
+            t = int(t)
+            adjMatrix[s][d] = t
+            adjMatrix[d][s] = t
+            
+        self.adjMatrix = adjMatrix
+        self.names = names
+        self.probs = probs
+        self.visited = [False] * m
+        self.size = m
+        self.best = sys.maxint
+
+    def allPairsShortest(self):
+        for k in range(self.size):
+            for i in range(self.size):
+                for j in range(self.size):
+                    if i != j:
+                        self.adjMatrix[i][j] = min(self.adjMatrix[i][j],
+                            self.adjMatrix[i][k] + self.adjMatrix[k][j])
+
+    def run(self):
+        self.allPairsShortest()    
+        for i in range(self.size):
+            for j in range(self.size):
+                if self.adjMatrix[i][j] == sys.maxint:
+                    out(-1.00)
+                    sys.exit()
+        self.visit(0,0,1.00)
+        out(self.best)
+
+    def visit(self,node,ev,p):
+        self.visited[node] = True
+        p -= self.probs[node]
+        end = True
+        for i in range(1,self.size):
+            if not self.visited[i]:
+                end = False
+                x = ev + (p * self.adjMatrix[node][i])
+                if x < self.best:
+                    self.visit(i, x, p)
+        self.visited[node] = False
+        if end:
+            if ev < self.best or self.best < 0:
+                self.best = ev
+
+if __name__ == "__main__":
+    S = Sophie(sys.argv[1])
+    S.run()

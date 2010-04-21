@@ -1,0 +1,44 @@
+Test cases were generously provided on David Alves' site:
+
+http://davidalves.net/fb/
+
+Also, on the main Facebook discussion thread.
+
+Thanks to ynamara for providing his java code. Very nice.
+
+Potential speedup or algorithm improvement: 
+
+Treat every visited node as a potential sink, collapse all cycles
+on to the "visited" node when encountered again in a path... but
+this could take longer because there are many more paths to explore.
+
+Current solution is faster than ynamara's java solution, but still
+can't pass the bot: this is exasperating.
+
+Could seperate testing code into seperate file, a "real" test harness.
+
+Could make DFS iterative instead of recursive.
+
+Could use defaultdict to implement/derive graph data structure (class).
+
+
+# --------------------------------------------------------------------------------- #
+
+class Graph(defaultdict):
+    def __init__(self):
+        self.default_factory = type(self)
+
+# --------------------------------------------------------------------------------- #
+
+... tried the following and it was very slow
+
+
+from collections import defaultdict
+
+class Edges(defaultdict):
+    def __init__(self):
+        self.default_factory = int
+
+class Graph(defaultdict):
+    def __init__(self):
+        self.default_factory = Edges

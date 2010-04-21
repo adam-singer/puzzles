@@ -1,0 +1,77 @@
+#!/usr/bin/python
+
+import sys
+
+def preferences(e,others):
+    prefs = []
+    for rank,o in enumerate(others):
+        n = len(e)
+        v = 0
+        for i,drink in enumerate(e):
+            try:
+                j = o.index(drink)
+            except:
+                v += n
+            else:
+                if i < j:
+                    v += n
+                if i == j:
+                    v += n * n
+            n -= 1
+        prefs.append((v,rank))
+    prefs.sort()
+    return [ rank for (v,rank) in prefs ]
+        
+def findPreferences(engineers):
+    mid = len(engineers) / 2
+    effective = engineers[:mid]
+    ineffective = engineers[mid:]
+
+    rankings = []
+    for e in effective:
+        prefs = preferences(e,ineffective)
+        prefs = [ p+len(effective) for p in prefs ]
+        rankings.append(prefs)
+    for e in ineffective:
+        rankings.append(preferences(e,effective))
+    return rankings
+
+def stableMatching(prefs):
+    freeMen = set([ i for i in range(len(prefs)/2) ])
+    engaged = {}
+    while len(freeMen) != 0:
+        m = freeMen.pop()
+        if len(prefs[m]) == 0:
+            continue
+        w = prefs[m].pop()
+        if w not in engaged:
+            engaged[w] = m
+        else:
+            if prefs[w].index(m) > prefs[w].index(engaged[w]):
+                freeMen.add(engaged[w])
+                engaged[w] = m
+            else:
+                freeMen.add(m)
+    engaged = [ (v,k) for (k,v) in engaged.items() ]
+    engaged.sort()
+    for (k,v) in engaged:
+        print "%d %d" % (k,v)
+                
+filename = sys.argv[1]
+input = open(filename)
+
+numEngineers, numDrinks = input.readline().strip().split()
+
+drinks = []
+for _ in range(int(numDrinks)):
+    drink = ' '.join(input.readline().strip().split()[1:])
+    drinks.append(drink)
+
+engineers = []
+for _ in range(int(numEngineers)):
+    index, prefs = input.readline().strip().split()
+    prefs = [int(p) for p in prefs.split(',')]
+    engineers.append(prefs)
+
+prefs = findPreferences(engineers)
+stableMatching(prefs)

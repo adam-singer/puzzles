@@ -1,0 +1,137 @@
+#!/usr/bin/python
+
+import sys
+import os
+import re
+
+# --------------------------------------------------------------------------------- #
+
+class Facebull(object):
+
+    def __init__(self):
+        self.best = set()
+        self.costs = {}
+        self.cost = 0
+        self.labels = {}
+        self.graph = {}
+
+    def collapse(self,G,nodes):
+        sink = self.sink
+        graph = {}
+        for src in G:
+            for dst,label in G[src].items():
+                if dst not in nodes and src not in nodes:
+                    if src not in graph:
+                        graph[src] = { dst : label } 
+                    elif dst not in graph[src]:
+                        graph[src][dst] = label
+                elif src not in nodes and dst in nodes:
+                    if src not in graph:
+                        graph[src] = { sink : label }
+                    elif sink not in graph[src]:
+                        graph[src][sink] = label
+                    elif self.costs[graph[src][sink]] > self.costs[G[src][dst]]:
+                        graph[src][sink] = label
+                elif src in nodes and dst not in nodes:
+                    if sink not in graph:
+                        graph[sink] = { dst : label }
+                    elif dst not in graph[sink]:
+                        graph[sink][dst] = label
+                    elif self.costs[graph[sink][dst]] > self.costs[G[src][dst]]:
+                        graph[sink][dst] = label
+        return graph
+
+    def search(self,graph,curr,used=[],cost=0,path=[]):
+        if cost >= self.cost:
+            return
+        if curr == self.sink and path:
+            G = self.collapse(graph,set(path))
+            if len(G) <= 1:
+                if cost < self.cost:
+                    self.cost = cost
+                    self.best = set(used)
+                return
+            self.search(G, self.sink, used, cost)
+        else:
+            for next,label in graph[curr].items():
+                if next in path and next != self.sink:
+                    continue
+                self.search(graph, next, used + [label],
+                        cost + self.costs[label], path+[curr])
+
+    def solve(self):
+        self.sink = self.graph.keys()[0]
+        self.search(self.graph,self.sink)
+
+    def solution(self):
+        labels = list(self.best)
+        labels.sort()
+        return ' '.join(str(m) for m in labels)
+
+    def total(self):
+        return self.cost
+
+    def input(self,f):
+        blank = re.compile("^\s+$")
+        for line in file(f).readlines():
+            if blank.match(line):
+                continue
+            (label, src, dst, cost) = line.rstrip().split()
+            label = int(label.replace('M',''))
+            src = int(src.replace('C',''))
+            dst = int(dst.replace('C',''))
+            if src == dst:
+                continue
+            cost = int(cost)
+            if src not in self.graph:
+                self.graph[src] = { dst : label }
+            elif dst not in self.graph[src]:
+                self.graph[src][dst] = label
+            elif cost < self.costs[self.graph[src][dst]]:
+                self.graph[src][dst] = label
+            else:
+                continue
+            self.costs[label] = cost
+            self.best.add(label)
+            self.cost += cost
+
+def testing(directory):
+    import time
+    import cProfile
+    timer = time.time
+    infile = re.compile(r".*\.in$")
+    for f in os.listdir(directory):
+        if not infile.match(f):
+            continue
+        facebull = Facebull()
+        facebull.input(directory + os.sep + f)
+        t1 = timer()
+        facebull.solve()
+        t2 = timer()
+        ans = facebull.solution().strip()
+        fcheck = open(directory + os.sep + f.split('.')[0] + ".out")
+        line = fcheck.read().split(os.linesep)[1]
+        print f, 
+        print " --> ",
+        if ans != line:
+            print "failure: %.2f" % (t2-t1)
+        else:
+            print "success: %.2f" % (t2-t1)
+
+def main(f):
+    
+    if os.path.isfile(f):
+        facebull = Facebull()
+        facebull.input(f)
+        facebull.solve()
+        print facebull.total()
+        print facebull.solution()
+        return 0
+    elif os.path.isdir(f):
+        testing(f)
+        return 0
+    else:
+        return -1
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1]))

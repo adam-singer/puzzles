@@ -1,0 +1,50 @@
+#!/usr/bin/python
+# --------------------------------------------------------------------------------- #
+
+import sys, os
+from graph import load, pathCost, findHamiltonianCycles as fhc
+
+# --------------------------------------------------------------------------------- #
+
+def machineList(path,names):
+    machines = []
+    for i in range(len(path)-1):
+        machines.append(names[(path[i],path[i+1])])
+    machines.sort()
+    machines = [ str(m) for m in machines ]
+    return ' '.join(machines)
+
+# --------------------------------------------------------------------------------- #
+
+try:
+    filename = sys.argv[1]
+except IndexError:
+    sys.stderr.write('no input specified\n')
+    sys.exit(1)
+
+prices = {}
+names = {}
+
+for line in file(filename).readlines():
+    (name, src, dst, price) = line.rstrip().split()
+    name = int(name.replace('M',''))
+    src = int(src.replace('C',''))
+    dst = int(dst.replace('C',''))
+    price = int(price)
+    t = (src,dst)
+    if t in prices and prices[t] <= price:
+        continue
+    prices[t] = price
+    names[t] = name
+
+G = load(prices.keys(),prices)
+a = fhc(G)
+cheapest = sys.maxint
+cheapestPath = None
+for p in a:
+    c = pathCost(p,prices)
+    if c < cheapest:
+        cheapest = c
+        cheapestPath = p
+print cheapest
+print machineList(cheapestPath,names)

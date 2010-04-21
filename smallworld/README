@@ -1,0 +1,8 @@
+I first started by attempting to translate Kanwei Li's solution.
+http://kanwei.com/
+
+I abandoned the translation of Kanwei's code when I found that
+Mike's coderama's kd-tree code worked with minor modifications 
+on Kanwei's sample data.
+
+This ended up passing the Facebook Puzzlebot.

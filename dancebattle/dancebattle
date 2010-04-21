@@ -1,0 +1,131 @@
+#!/usr/bin/python
+# dancebattle
+# Martin-Louis Bright
+
+import sys
+from utils import *
+
+MAX = sys.maxint
+DEPTH = 12
+
+def abSearch(state, game, d=DEPTH, cutoff_test=None, eval_fn=None):
+    """Search game to determine best action; use alpha-beta pruning.
+    This version cuts off search and uses an evaluation function."""
+
+    player = game.toMove(state)
+
+    def maxValue(state, alpha, beta, depth):
+        if cutoff_test(state, depth):
+            return eval_fn(state)
+        v = -infinity
+        for (a, s) in game.successors(state):
+            v = max(v, minValue(s, alpha, beta, depth+1))
+            if v >= beta:
+                return v
+            alpha = max(alpha, v)
+        return v
+
+    def minValue(state, alpha, beta, depth):
+        if cutoff_test(state, depth):
+            return eval_fn(state)
+        v = infinity
+        for (a, s) in game.successors(state):
+            v = min(v, maxValue(s, alpha, beta, depth+1))
+            if v <= alpha:
+                return v
+            beta = min(beta, v)
+        return v
+
+    # Body of alphabeta_search starts here:
+    # The default test cuts off at depth d or at a terminal state
+    cutoff_test = (cutoff_test or
+                   (lambda state,depth: depth>d or game.terminalTest(state)))
+    eval_fn = eval_fn or (lambda state: game.utility(state, player))
+    action, state = argmax(game.successors(state),
+                           lambda ((a, s)): minValue(s, -infinity, infinity, 0))
+    return action
+
+def playGame(game, *players):
+    "Play an n-person, move-alternating game."
+    state = game.initial
+    while True:
+        for player in players:
+            if game.terminalTest(state):
+                return game.toMove(state)
+            move = player(game, state)
+            state = game.makeMove(move, state)
+
+def cross(A,B):
+    return [(x,y) for x in A for y in B]
+
+def abPlayer(game,state):
+    return abSearch(state,game)
+
+class DanceBattle:
+
+    def __init__(self,n,played):
+        moves = set(cross(range(n),range(n)))
+        if len(played) != 0:
+            for p in played:
+                a,b = p[0],p[1]
+                moves.discard((b,a))
+                moves.discard((a,b))
+            last = played[-1]
+            toMove = (len(played) % 2 == 0)
+        else:
+            moves.discard((0,0))
+            last = (0,0)
+            toMove = False
+        self.initial = Struct(toMove=toMove,moves=moves,last=last)
+
+    def legalMoves(self,state):
+        moves = [m for m in state.moves if m[0] == state.last[1]]
+        return moves
+
+    def makeMove(self,move,state):
+        moves = state.moves.copy()
+        moves.discard(move)
+        moves.discard((move[1],move[0]))
+        toMove = if_(state.toMove,False,True)
+        return Struct(toMove=toMove, moves=moves, last=move)
+
+    def utility(self,state,player):
+        if player:
+            return if_(state.toMove,-MAX,MAX)
+        else:
+            return if_(state.toMove,MAX,-MAX)
+
+    def terminalTest(self, state):
+        "Return True if this is a final state for the game."
+        legal = self.legalMoves(state)
+        if len(legal) == 0:
+            return True
+        if state.last[0] == state.last[1]:
+            return True
+        return False
+
+    def toMove(self, state):
+        "Return the player whose move it is in this state."
+        return state.toMove
+
+    def successors(self, state):
+        "Return a list of legal (move, state) pairs."
+        return [(move,self.makeMove(move,state)) for move in self.legalMoves(state)]
+
+filename = sys.argv[1]
+input = open(filename)
+n = int(input.readline().strip())
+m = int(input.readline().strip())
+
+played = list()
+for _ in range(m):
+    a,b = input.readline().strip().split()
+    a,b = int(a),int(b)
+    played.append((a,b))
+
+d = DanceBattle(n,played)
+result = playGame(d,abPlayer,abPlayer)
+if result:
+    print "Lose"
+else:
+    print "Win"

@@ -1,0 +1,102 @@
+#!/usr/bin/python
+
+import sys
+from dijkstra import Dijkstra, prevPath
+
+def out(d):
+    print "%.2f" % (d)
+
+def find(T,probs):
+    G,P = allPairsShortest(T)
+    U = set(G.keys())
+
+    def cost(p):
+        return sum([ G[p[i]][p[i+1]] for i in range(len(p)-1) ]) * probs[p[-1]]
+
+    def search(solution,path=[0],soFar=0):
+        r = U - set(path)
+        if len(r) == 0:
+            if soFar < solution:
+                return soFar
+            else:
+                return solution
+        else:
+            for d in r:
+                if d == path[-1]:
+                    continue
+                newpath = path[:]
+                tmp = soFar
+                for v in P[path[-1]][d][1:]:
+                    if v in newpath:
+                        newpath += [v]
+                    else:
+                        newpath += [v]
+                        tmp += cost(newpath)
+                if tmp >= solution:
+                    continue
+                solution = search(solution,newpath,tmp)
+            return solution
+
+    return search(sys.maxint)
+
+def allPairsShortest(t):
+    g = {}
+    paths = {}
+    for s in t:
+        dist,prev = Dijkstra(t,s)
+        for d in prev:
+            if s == d:
+                continue
+            p = prevPath(prev,s,d)
+            for i in range(len(p)-1):
+                x,y = p[i],p[i+1]
+                if x in g:
+                    g[x][y] = t[x][y]
+                else:
+                    g[x] = { y : t[x][y] }
+            if s in paths:
+                paths[s][d] = p
+            else:
+                paths[s] = { d : p }            
+    return g,paths
+
+def main():
+    names = []
+    probs = []
+
+    filename = sys.argv[1]
+    input = open(filename)
+    m = int(input.readline().strip())
+
+    for _ in range(m):
+        l,p = input.readline().strip().split()
+        p = float(p)
+        names.append(l)
+        probs.append(p)
+
+    n = int(input.readline().strip())
+    T = {}
+
+    for _ in range(n):
+        src,dst,t = input.readline().strip().split()
+        t = int(t)
+        src = names.index(src)
+        dst = names.index(dst)
+        if src in T:
+            T[src][dst] = t
+        else:
+            T[src] = { dst : t }
+        if dst in T:
+            T[dst][src] = t
+        else:
+            T[dst] = { src : t }
+
+    D,P = Dijkstra(T,0)
+    if len(D) != len(probs):
+        solution = -1.00
+    else:
+        solution = find(T,probs)
+    out(solution)
+
+if __name__ == "__main__":
+    main()

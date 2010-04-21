@@ -1,0 +1,389 @@
+#!/usr/bin/env python
+# Brute force solution to the Facebull problem
+# --------------------------------------------------------------------------------- #
+
+import time
+import heapq
+import cProfile
+import sys
+import os
+import re
+import operator
+from collections import defaultdict
+from itertools import product, combinations
+
+def recursive_dfs(graph, start, path=[]):
+    '''recursive depth first search from start'''
+    path = path + [start]
+    for node in graph[start]:
+        if not node in path:
+            path = recursive_dfs(graph, node, path)
+    return path
+
+def iterative_dfs(graph, start, path=[]):
+    '''iterative depth first search from start'''
+    q = [start]
+    while q:
+        v = q.pop(0)
+        if v not in path:
+            path = path + [v]
+        q = graph[v] + q
+    return path
+
+def iterative_bfs(graph, start, path=[]):
+    '''iterative breadth first search from start'''
+    q = [start]
+    while q:
+        v = q.pop(0)
+        if not v in path:
+            path = path + [v]
+            q = q + graph[v]
+    return path
+
+def dfs_recursive(v, visited = None, 
+        preorder_process  = lambda x: None,
+        postorder_process = lambda x: None):
+    if visited is None: visited = set()
+    visited.add(v)
+    preorder_process(v)
+    for neighbor in v.neighbors:
+        if neighbor not in visited:
+            dfs(neighbor, visited, 
+                preorder_process, 
+                postorder_process)
+    postorder_process(v)
+
+def dfs(root, visited=None, preorder_process=lambda x: None):
+    """ Given a starting vertex, root, do a depth-first search.  """
+    to_visit = []  # a list can be used as a stack in Python
+    if visited is None:
+        visited = set()
+ 
+    to_visit.append(root) # Start with root
+
+    while to_visit:
+        v = to_visit.pop()
+        if v not in visited:
+            visited.add(v)
+            preorder_process(v)
+            to_visit.extend(v.neighbors)
+
+# Priority dictionary using binary heaps
+# David Eppstein, UC Irvine, 8 Mar 2002
+
+class PriorityDictionary(dict):
+
+    def __init__(self):
+        '''Initialize PriorityDictionary by creating binary heap
+        of pairs (value,key).  Note that changing or removing a dict entry will
+        not remove the old pair from the heap until it is found by smallest() or
+        until the heap is rebuilt.'''
+        self.__heap = []
+        dict.__init__(self)
+
+    def smallest(self):
+        '''Find smallest item after removing deleted items from heap.'''
+        if len(self) == 0:
+            raise IndexError, "smallest of empty PriorityDictionary"
+        heap = self.__heap
+        while heap[0][1] not in self or self[heap[0][1]] != heap[0][0]:
+            lastItem = heap.pop()
+            insertionPoint = 0
+            while 1:
+                smallChild = 2*insertionPoint+1
+                if smallChild+1 < len(heap) and \
+                        heap[smallChild] > heap[smallChild+1]:
+                    smallChild += 1
+                if smallChild >= len(heap) or lastItem <= heap[smallChild]:
+                    heap[insertionPoint] = lastItem
+                    break
+                heap[insertionPoint] = heap[smallChild]
+                insertionPoint = smallChild
+        return heap[0][1]
+    
+    def __iter__(self):
+        '''Create destructive sorted iterator of PriorityDictionary.'''
+        def iterfn():
+            while len(self) > 0:
+                x = self.smallest()
+                yield x
+                del self[x]
+        return iterfn()
+    
+    def __setitem__(self,key,val):
+        '''Change value stored in dictionary and add corresponding
+        pair to heap.  Rebuilds the heap if the number of deleted items grows
+        too large, to avoid memory leakage.'''
+        dict.__setitem__(self,key,val)
+        heap = self.__heap
+        if len(heap) > 2 * len(self):
+            self.__heap = [(v,k) for k,v in self.iteritems()]
+            self.__heap.sort()  # builtin sort likely faster than O(n) heapify
+        else:
+            newPair = (val,key)
+            insertionPoint = len(heap)
+            heap.append(None)
+            while insertionPoint > 0 and newPair < heap[(insertionPoint-1)//2]:
+                heap[insertionPoint] = heap[(insertionPoint-1)//2]
+                insertionPoint = (insertionPoint-1)//2
+            heap[insertionPoint] = newPair
+    
+    def setdefault(self,key,val):
+        '''Reimplement setdefault to call our customized __setitem__.'''
+        if key not in self:
+            self[key] = val
+        return self[key]
+
+# Dijkstra's algorithm for shortest paths
+# David Eppstein, UC Irvine, 4 April 2002
+
+def Dijkstra(G,start,end=None):
+    """
+    Find shortest paths from the start vertex to all
+    vertices nearer than or equal to the end.
+
+    The input graph G is assumed to have the following
+    representation: A vertex can be any object that can
+    be used as an index into a dictionary.  G is a
+    dictionary, indexed by vertices.  For any vertex v,
+    G[v] is itself a dictionary, indexed by the neighbors
+    of v.  For any edge v->w, G[v][w] is the length of
+    the edge.  This is related to the representation in
+    <http://www.python.org/doc/essays/graphs.html>
+    where Guido van Rossum suggests representing graphs
+    as dictionaries mapping vertices to lists of neighbors,
+    however dictionaries of edges have many advantages
+    over lists: they can store extra information (here,
+    the lengths), they support fast existence tests,
+    and they allow easy modification of the graph by edge
+    insertion and removal.  Such modifications are not
+    needed here but are important in other graph algorithms.
+    Since dictionaries obey iterator protocol, a graph
+    represented as described here could be handed without
+    modification to an algorithm using Guido's representation.
+
+    Of course, G and G[v] need not be Python dict objects;
+    they can be any other object that obeys dict protocol,
+    for instance a wrapper in which vertices are URLs
+    and a call to G[v] loads the web page and finds its links.
+    
+    The output is a pair (D,P) where D[v] is the distance
+    from start to v and P[v] is the predecessor of v along
+    the shortest path from s to v.
+    
+    Dijkstra's algorithm is only guaranteed to work correctly
+    when all edge lengths are positive. This code does not
+    verify this property for all edges (only the edges seen
+    before the end vertex is reached), but will correctly
+    compute shortest paths even for some graphs with negative
+    edges, and will raise an exception if it discovers that
+    a negative edge has caused it to make a mistake.
+    """
+
+    D = {}  # dictionary of final distances
+    P = {}  # dictionary of predecessors
+    Q = PriorityDictionary()   # est.dist. of non-final vert.
+    Q[start] = 0
+    
+    for v in Q:
+        D[v] = Q[v]
+        if v == end:
+            break
+        
+        for w in G[v]:
+            vwLength = D[v] + G[v][w]
+            if w in D:
+                if vwLength < D[w]:
+                    raise ValueError, "Found better path to already-final vertex"
+            elif w not in Q or vwLength < Q[w]:
+                Q[w] = vwLength
+                P[w] = v
+    
+    return (D,P)
+            
+def prevPath(P,start,end):
+    Path = []
+    while True:
+        Path.append(end)
+        if end == start:
+            break
+        end = P[end]
+    Path.reverse()
+    return Path
+
+def shortestPath(G,start,end):
+    """
+    Find a single shortest path from the given start vertex
+    to the given end vertex.
+    The input has the same conventions as Dijkstra().
+    The output is a list of the vertices in order along
+    the shortest path.
+    """
+
+    D,P = Dijkstra(G,start,end)
+    return prevPath(P,start,end)
+
+def shortest_path(G, start, end):
+   def flatten(L):       # Flatten linked list of form [0,[1,[2,[]]]]
+      while len(L) > 0:
+         yield L[0]
+         L = L[1]
+
+   q = [(0, start, ())]  # Heap of (cost, path_head, path_rest).
+   visited = set()       # Visited vertices.
+   while True:
+      (cost, v1, path) = heapq.heappop(q)
+      if v1 not in visited:
+         visited.add(v1)
+         if v1 == end:
+            return list(flatten(path))[::-1] + [v1]
+         path = (v1, path)
+         for (v2, cost2) in G[v1].iteritems():
+            if v2 not in visited:
+               heapq.heappush(q, (cost + cost2, v2, path))
+
+def floydWarshall(adjMatrix):
+    size = len(matrix[0])
+    for k in range(size):
+        for i in range(size):
+            for j in range(size):
+                if i != j:
+                    adjMatrix[i][j] = min(adjMatrix[i][j],
+                        adjMatrix[i][k] + adjMatrix[k][j])
+
+def isStronglyConnected(g,numVertices):
+    for s in g.keys():
+        D,P = Dijkstra(g,s)
+        if len(D) != numVertices:
+            return False
+    return True
+
+def vset(edges):
+    V = set()
+    for s,t in edges:
+        V.add(s)
+        V.add(t)
+    return V
+
+def load(edges,weights):
+    """ Add edges to graph """
+    g={}
+    for s,t in edges:
+        if s in g:
+            g[s][t] = weights[(s,t)]
+        else:
+            g[s] = { t : weights[(s,t)] }
+        if t not in g:
+            g[t] = {}
+    return g
+
+def facebull(costs):
+    """ Determine must-have edges """
+    edges = costs.keys()
+    vertices = vset(edges)
+    nVertices = len(vertices)
+    musthaves = set()
+
+    """ Check for nodes with incoming/outgoing degree=1 """
+    sources = defaultdict(set)
+    sinks = defaultdict(set)
+    for s,d in edges:
+        sources[s].add(d)
+        sinks[d].add(s)
+
+    for k in sources:
+        if len(sources[k]) == 1:
+            musthaves.add((k,sources[k].pop()))
+
+    for k in sinks:
+        if len(sinks[k]) == 1:
+            musthaves.add((sinks[k].pop(),k))
+
+    remaining = set(edges) - musthaves
+    if len(remaining) == 0:
+        return musthaves
+
+    best = set(edges)
+    bestCost = sum(costs[e] for e in remaining)
+
+    for r in range(nVertices - len(musthaves), len(remaining) + 1):
+        for candidate in combinations(remaining,r):
+            candidate = set(candidate)
+            cost = sum(costs[e] for e in candidate)
+            if cost >= bestCost:
+                continue
+            candidate |= musthaves
+            if nVertices != len(vset(candidate)):
+                continue
+            if isStronglyConnected(load(candidate,costs),nVertices):
+                bestCost = cost
+                best = candidate
+
+    return best
+
+def output(names,solution):
+    if solution is None:
+        print "No solution"
+        return
+    return ' '.join([ str(x) for x in sorted([ names[i] for i in solution ]) ])
+
+def input(f):
+    prices = {}
+    names = {}
+
+    for line in file(f).readlines():
+        (name, src, dst, cost) = line.rstrip().split()
+        name = int(name.replace('M',''))
+        src = int(src.replace('C',''))
+        dst = int(dst.replace('C',''))
+        cost = int(cost)
+        prices[(src,dst)] = cost
+        names[(src,dst)] = name
+
+    return names,prices
+
+def testing(directory):
+
+    timer = time.time
+
+    infile = re.compile(r".*\.in$")
+    for f in os.listdir(directory):
+        if not infile.match(f):
+            continue
+        names,prices = input(sys.argv[1] + os.sep + f)
+        t1 = timer()
+        solution = facebull(prices)
+        t2 = timer()
+        ans = output(names,solution)
+        (outfile, ext) = f.split('.')
+        fcheck = open(directory + os.sep + outfile + ".out")
+        line = fcheck.readline().strip()
+        line = fcheck.readline().strip()
+        if ans != line:
+            print "failure on %s %.2f" % (f, t2-t1)
+        else:
+            print "success on %s %.2f" % (f, t2-t1)
+
+def main(argv=None):
+    
+    if argv is None:
+        argv = sys.argv
+
+    if len(argv) != 2:
+        return -1
+
+    if os.path.isfile(argv[1]):
+        f = sys.argv[1]
+        names,prices = input(f)
+        solution = facebull(prices)
+        print sum([ prices[x] for x in solution ]) 
+        print output(names,solution)
+        return 0
+    elif os.path.isdir(argv[1]):
+        testing(argv[1])
+        return 0
+    else:
+        return -1
+
+if __name__ == "__main__":
+    sys.exit(main())

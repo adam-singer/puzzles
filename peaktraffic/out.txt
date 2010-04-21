@@ -1,0 +1,36 @@
+$ ./test 4 > 4.in
+$ ./test 6 > 6.in
+$ ./test 8 > 8.in
+$ ./test 10 > 10.in
+$ ./test 12 > 12.in
+$ cd python
+$ time ./peaktraffic ../4.in | md5sum
+6fa2a410a6b51ce81f11dc35eec973af -
+
+real    0m0.070s
+user    0m0.034s
+sys 0m0.020s
+$ time ./peaktraffic ../6.in | md5sum
+01c88f155e22ce20ac356f9d513f9dcf -
+
+real    0m0.170s
+user    0m0.155s
+sys 0m0.020s
+$ time ./peaktraffic ../8.in | md5sum
+bec4ce504419a35314e15930bef42c39 -
+
+real    0m0.711s
+user    0m0.692s
+sys 0m0.028s
+$ time ./peaktraffic ../10.in | md5sum
+f40aedbb9544acb4933b3aa75cad8e73 -
+
+real    0m2.393s
+user    0m2.340s
+sys 0m0.070s
+$ time ./peaktraffic ../12.in | md5sum
+29e7baf12c8d6d237169268416023e58 -
+
+real    0m8.730s
+user    0m8.542s
+sys 0m0.231s

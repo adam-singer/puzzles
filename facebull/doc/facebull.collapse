@@ -1,0 +1,157 @@
+#!/usr/bin/env python
+# slight variation on ynamara's solution
+# --------------------------------------------------------------------------------- #
+
+import time
+import cProfile
+import sys
+import os
+import re
+
+def add_(s,i):
+    new = s | set()
+    new.add(i)
+    return new
+
+class Facebull(object):
+
+    def __init__(self):
+        self.best = set()
+        self.costs = {}
+        self.labels = {}
+        self.graph = {}
+
+    def collapse(self,g,path):
+        nodes = set()
+        for (x,y) in path:
+            nodes.add(x)
+            nodes.add(y)
+        nodes.discard(self.sink)
+        for s in nodes:
+            for (d,label) in g[s].items():
+                if d in g[self.sink]:
+                    if self.costs[g[self.sink][d]] > self.costs[label]:
+                        g[self.sink][d] = label                        
+                else:
+                    g[self.sink][d] = label
+                del g[s][d]
+        for s in g:
+            for d,label in g[s].items():
+                if d in nodes:
+                    if self.sink in g[s]:
+                        if self.costs[g[s][self.sink]] > self.costs[g[s][d]]:
+                            g[s][self.sink] = label
+                    else:
+                        g[s][self.sink] = label
+                    del g[s][d]
+        for s in g.keys():
+            if s in g[s]:
+                del g[s][s]
+            if len(g[s]) == 0:
+                del g[s]
+                continue
+        for (src,dst) in path:
+            if src in g and dst in g[src] and src != self.sink and dst != self.sink:
+                del g[src][dst]
+        return g
+
+    def search(self,graph,curr,reached=set(),used=set(),cost=0,path=set()):
+        tmp = graph.copy()
+        if cost > self.cost:
+            return
+        if curr == self.sink:
+            if len(reached) == self.num_compounds:
+                if cost < self.cost:
+                    self.cost = cost
+                    self.best = used | set()
+            else:
+                path = set()
+                graph = self.collapse(graph,path)
+                    
+        for next,label in graph[curr].items():
+            if next in reached:
+                continue
+            self.search(
+                graph,
+                next,
+                add_(reached,next),
+                add_(used,label),
+                cost+self.costs[label],
+                add_(path,(curr,next)))
+        graph = tmp
+
+    def solve(self):
+        self.cost = sum( self.costs[t] for t in self.best )
+        self.sink = self.graph.keys()[0]
+        self.search(self.graph,self.sink)
+
+    def solution(self):
+        labels = list(self.best)
+        labels.sort()
+        return ' '.join(str(m) for m in labels)
+
+    def total(self):
+        return self.cost
+
+    def input(self,f):
+        compounds = set()
+        for line in file(f).readlines():
+            (label, src, dst, cost) = line.rstrip().split()
+            label = int(label.replace('M',''))
+            src = int(src.replace('C',''))
+            dst = int(dst.replace('C',''))
+            cost = int(cost)
+            compounds.add(src)
+            self.costs[label] = cost
+            if src in self.graph:
+                self.graph[src][dst] = label
+            else:
+                self.graph[src] = { dst : label }
+            self.best.add(label)
+        self.num_compounds = len(compounds)
+
+def testing(directory):
+    timer = time.time
+    infile = re.compile(r".*\.in$")
+    for f in os.listdir(directory):
+        if not infile.match(f):
+            continue
+        facebull = Facebull()
+        facebull.input(directory + os.sep + f)
+        t1 = timer()
+        facebull.solve()
+        t2 = timer()
+        ans = facebull.solution().strip()
+        fcheck = open(directory + os.sep + f.split('.')[0] + ".out")
+        line = fcheck.read().split(os.linesep)[1]
+        print f, 
+        print " --> ",
+        if ans != line:
+            print "failure: %.2f" % (t2-t1)
+        else:
+            print "success: %.2f" % (t2-t1)
+
+def main(argv=None):
+    
+    if argv is None:
+        argv = sys.argv
+
+    if len(argv) != 2:
+        return -1
+
+    if os.path.isfile(argv[1]):
+        f = sys.argv[1]
+        facebull = Facebull()
+        facebull.input(f)
+        facebull.solve()
+        print facebull.total()
+        print facebull.solution()
+        return 0
+    elif os.path.isdir(argv[1]):
+        testing(argv[1])
+        return 0
+    else:
+        return -1
+
+if __name__ == "__main__":
+    sys.exit(main())

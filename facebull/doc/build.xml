@@ -1,0 +1,6 @@
+<project>  
+<property name="keyword" value="facebull"/>  
+<javac srcdir="." destdir="."/>  
+<echo message="java -Xmx1024M ynamara.fbpuzzle.${keyword} $*" file="${keyword}"/>  
+<chmod file="${keyword}" perm="a+x"/>  
+</project>

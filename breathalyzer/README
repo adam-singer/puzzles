@@ -1,0 +1,14 @@
+passed! (5170.922ms worst test case)
+
+py-editdist was compiled and installed to architecture specific
+local directories that are checked into git repo
+and appended to sys.path at runtime, depending on architecture
+(currently only i686 or x86_64)
+
+To build, execute:
+
+$ ./build.sh
+
+To run, execute:
+
+$ python2.5 breathalyzer test/187.in

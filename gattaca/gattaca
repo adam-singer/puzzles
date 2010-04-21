@@ -1,0 +1,49 @@
+#!/usr/bin/python
+
+import sys
+import re
+import operator
+from bisect import bisect_left, bisect
+
+class Interval:
+    def __init__(self, start, end, val):
+        self.start = start
+        self.end = end
+        self.val = val
+
+# Get the list of the intervals from the input file.
+def getIntervals():
+    intervals = []
+    f = open(sys.argv[1], 'r')
+    for line in f:
+        fields = line.strip().split()
+        if len(fields) == 3:
+            # Interval has 3 fields (start, end, val)
+            intervals.append(Interval(*[int(x) for x in fields]))
+    return intervals
+
+def gattaca(jobs):
+    jobs.sort(key=operator.attrgetter('end'))
+    starts = [ j.start for j in jobs ]
+    ends = [ j.end for j in jobs ]
+    vals = [ j.val for j in jobs ]
+
+    n = len(jobs)
+    p = [0] * n
+    for i in range(n):
+        p[i] = bisect_left(ends, starts[i],0,i)
+            
+    p = [0] + p
+    vals = [0] + vals
+
+    S = [0] * (n+1)
+    S[0] = 0
+    S[1] = vals[1]
+    for i in range(2,n+1):
+        S[i] = max(S[i-1], vals[i] + S[p[i]])
+
+    return S[-1]
+
+intervals = getIntervals()
+total = gattaca(intervals)
+print total

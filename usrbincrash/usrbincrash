@@ -1,0 +1,66 @@
+#!/usr/bin/python
+# passed Puzzlebot: ran for 4339.137 ms on its longest test case
+# --------------------------------------------------------------------------------- #
+
+import sys
+
+def gcd(u,v):
+    while True:
+        if v == 0:
+            return u
+        u %= v
+        if u == 0:
+            return v
+        v %= u
+
+class SKU(object):
+    def __init__(self,weight,cost):
+        self.weight = weight
+        self.cost = cost
+
+def prune(manifest):
+    keep = [True] * len(manifest)
+    for b in manifest:
+        for j,i in enumerate(manifest):
+            if i.weight < b.weight:
+                if i.weight*i.cost > b.weight*b.cost:
+                    keep[j] = False
+    return [ m for i,m in enumerate(manifest) if keep[i] ]
+
+def input(filename):
+    f = open(filename)
+    ejectWeight = int(f.readline().strip())
+    manifest = []
+    for line in f:
+        sku,weight,cost = line.strip().split()
+        manifest.append(SKU(int(weight),int(cost)))
+    f.close()
+    return ejectWeight,manifest
+
+def unbounded(limit,manifest):
+    A = [0] * limit
+    for curWeight in range(limit):
+        best = None
+        for item in manifest:
+            cost = item.cost
+            if item.weight <= curWeight:
+                cost += A[curWeight - item.weight]
+            if best is None or cost < best:
+                best = cost
+        A[curWeight] = best
+    return A[-1]
+
+if __name__ == "__main__":
+
+    ejectWeight,manifest = input(sys.argv[1])
+    manifest = prune(manifest)
+
+    overallGCD = gcd(manifest[0].weight,ejectWeight)
+    for i in range(1,len(manifest)):
+        overallGCD = gcd(overallGCD,manifest[i].weight)
+    ejectWeight /= overallGCD
+    for o in manifest:
+        o.weight /= overallGCD
+        
+    cost = unbounded(ejectWeight,manifest)
+    print cost

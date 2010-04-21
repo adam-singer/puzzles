@@ -1,0 +1,123 @@
+#!/usr/bin/python
+
+import math
+import sys
+import os
+
+class Base(object):
+    def __init__(self,index,zerg,minerals):
+        self.index = index
+        self.zerg = zerg
+        self.minerals = minerals
+
+def product(*args, **kwds):
+    # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
+    # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
+    pools = map(tuple, args) * kwds.get('repeat', 1)
+    result = [[]]
+    for pool in pools:
+        result = [x+[y] for x in result for y in pool]
+    for prod in result:
+        yield prod
+
+def gain(minerals, terran, zerg):
+    n = -63 * terran + 10 + 21 * zerg
+    if n < 0:
+        return 0
+    if n > 10:
+        return minerals
+    cc = math.exp(n)
+    return round(minerals * cc / (1 + cc))
+
+def minimumRequiredZerg(minerals, terran):
+    return math.ceil((math.log(minerals-1) + ((-63 * terran) + 10)) / -21)
+
+def isFeasible(minerals, terran, zerg):
+    if minerals <= 1:
+        return False
+    if ((math.log(minerals-1) + (-63 * terran + 10)) >= (-21 * zerg)):
+        return True
+    else:
+        return False
+
+def optimize(bases,maxZerg):
+    if len(bases) == 0:
+        return []
+    table = []
+    for x in range(len(bases)+1):
+        table.append([])
+    for zerg in range(maxZerg+1):
+        table[0].append(0)
+    for base in range(1,len(bases)+1):
+        table[base].append(0)
+        for zerg in range(1,maxZerg+1):
+            newval=bases[base-1].minerals+table[base-1][int(zerg-bases[base-1].zerg)]
+            if bases[base-1].zerg <= zerg and newval > table[base-1][zerg]:
+                table[base].append(newval)
+            else:
+                table[base].append(table[base-1][zerg])
+
+    # figure out which bases to attack from the minerals
+    # and allocated Zerg forces
+    result = []
+    i, k = len(bases), maxZerg
+    while i > 0 and k > 0:
+        if table[i][k] != table[i-1][k]:
+            result.append(bases[i-1])
+            k -= int(bases[i-1].zerg)
+        i -= 1
+    return result
+
+try:
+    filename = sys.argv[1]
+    input = open(filename)
+except:
+    sys.stderr.write('input error\n')
+    sys.exit(1)
+
+numPlanets = int(input.readline().strip())
+out = []
+
+for x in range(numPlanets):
+    bases, zerg = input.readline().strip().split()
+    bases, zerg = int(bases),int(zerg)
+    baseAllocations = []
+    for n in range(bases):
+        terran, minerals = input.readline().strip().split()
+        terran, minerals = int(terran),int(minerals)
+        if isFeasible(minerals,terran,zerg):
+            zergNeeded = minimumRequiredZerg(minerals,terran)
+            lastGain = None
+            allocations = []
+            while True:
+                g = gain(minerals, terran, zergNeeded)
+                if lastGain is not None and lastGain == g:
+                    break
+                allocations.append(Base(n,zergNeeded,g))
+                lastGain = g
+                zergNeeded += 1
+            baseAllocations.append(allocations)
+    
+    allocations = product(*baseAllocations)
+
+    bestZerg, bestMinerals, bestSelection = None, None, None
+    for allocation in allocations:
+        allocation.sort(key=lambda x: [x.zerg, x.minerals])
+        selection = optimize(allocation, zerg)
+        totalZerg = sum([ i.zerg for i in selection ])
+        totalMinerals = sum([ i.minerals for i in selection ])
+        if bestMinerals is None or totalMinerals >= bestMinerals:
+            bestZerg, bestMinerals = totalZerg, totalMinerals
+            bestSelection = selection
+
+    if bestZerg is None and bestMinerals is None:
+        out.append("0 0")
+    else:
+        out.append("%d %d" % (bestZerg, bestMinerals))
+        attacked = []
+        bestSelection.sort(key=lambda x: x.index)
+        for base in bestSelection:
+            attacked.append("%d %d" % (base.index, base.zerg))
+        out.append(" ".join(attacked))
+
+print os.linesep.join(out)
