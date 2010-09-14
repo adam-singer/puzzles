@@ -23,7 +23,8 @@ def prune(manifest):
     for b in manifest:
         for j,i in enumerate(manifest):
             if i.weight < b.weight:
-                if i.weight*i.cost > b.weight*b.cost:
+                #if i.weight*i.cost > b.weight*b.cost:
+                if i.cost > b.cost:
                     keep[j] = False
     return [ m for i,m in enumerate(manifest) if keep[i] ]
 
