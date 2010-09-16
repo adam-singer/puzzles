@@ -22,12 +22,12 @@ class SKU(object):
 def prune(manifest):
     keep = [True] * len(manifest)
     for b in manifest:
-        for j,i in enumerate(manifest):
+        for i,a in enumerate(manifest):
             #if i.weight < b.weight:
-            if i.weight <= b.weight:
+            if a.weight <= b.weight:
                 #if i.weight*i.cost > b.weight*b.cost:
-                if i.cost > b.cost:
-                    keep[j] = False
+                if a.cost > b.cost:
+                    keep[i] = False
     return [ m for i,m in enumerate(manifest) if keep[i] ]
 
 def input(filename):
