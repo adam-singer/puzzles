@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # passed Puzzlebot: ran for 4339.137 ms on its longest test case
-# simpler pruning: ran for 3376.271 ms on its longest test case
+# simpler pruning: ran for 3376.271 ms (3263.225 ms) on its longest test case
 # ---------------------------------------------------------------------------- #
 
 import sys
@@ -23,7 +23,8 @@ def prune(manifest):
     keep = [True] * len(manifest)
     for b in manifest:
         for j,i in enumerate(manifest):
-            if i.weight < b.weight:
+            #if i.weight < b.weight:
+            if i.weight <= b.weight:
                 #if i.weight*i.cost > b.weight*b.cost:
                 if i.cost > b.cost:
                     keep[j] = False
