@@ -17,7 +17,7 @@ END = 'I-FINISH'
 
 # --------------------------------------------------------------------------------- #
 
-def roadTime(distance, speed):
+def road_time(distance, speed):
     try:
         x = (float(distance) / float(speed))
     except ZeroDivisionError:
@@ -25,7 +25,7 @@ def roadTime(distance, speed):
     else:
         return x
 
-def nextIntersection(roadmap,D,src):
+def next_intersection(roadmap,D,src):
     speeds = {}
     roads = {}
     g = {}
@@ -35,13 +35,13 @@ def nextIntersection(roadmap,D,src):
             end = road.EndIntersection
             if start != src and end != src: continue
             if start in g:
-                g[start][end] = roadTime(road.Distance,road.CurrentSpeed)
+                g[start][end] = road_time(road.Distance,road.CurrentSpeed)
             else:
-                g[start] = { end: roadTime(road.Distance,road.CurrentSpeed) }
+                g[start] = { end: road_time(road.Distance,road.CurrentSpeed) }
             if end in g:
-                g[end][start] = roadTime(road.Distance,road.CurrentSpeed)
+                g[end][start] = road_time(road.Distance,road.CurrentSpeed)
             else:
-                g[end] = { start: roadTime(road.Distance,road.CurrentSpeed) }
+                g[end] = { start: road_time(road.Distance,road.CurrentSpeed) }
             speeds[(start,end)] = road.CurrentSpeed
             speeds[(end,start)] = road.CurrentSpeed
             roads[(start, end)] = road
@@ -61,13 +61,13 @@ def load(roadmap):
             start = road.StartIntersection
             end = road.EndIntersection
             if start in g:
-                g[start][end] = roadTime(road.Distance,road.MaxSpeed)
+                g[start][end] = road_time(road.Distance,road.MaxSpeed)
             else:
-                g[start] = { end: roadTime(road.Distance,road.MaxSpeed) }
+                g[start] = { end: road_time(road.Distance,road.MaxSpeed) }
             if end in g:
-                g[end][start] = roadTime(road.Distance,road.MaxSpeed)
+                g[end][start] = road_time(road.Distance,road.MaxSpeed)
             else:
-                g[end] = {start: roadTime(road.Distance,road.MaxSpeed)}
+                g[end] = {start: road_time(road.Distance,road.MaxSpeed)}
     return g
 
 # --------------------------------------------------------------------------------- #
@@ -92,8 +92,8 @@ while current != END:
     roadmap = client.getRoadConditions()
     if G is None:
         G = load(roadmap)
-    road,speed,current = nextIntersection(roadmap,G,current)
-    print current
+    road,speed,current = next_intersection(roadmap,G,current)
+    print "at time %s, road taken: %s" % (client.getTime(),current)
     client.takeRoad(road,speed)
 
 print client.winGame()

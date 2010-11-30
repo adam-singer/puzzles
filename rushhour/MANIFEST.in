@@ -2,5 +2,5 @@ RushHour.py
 constants.py
 dijkstra.py
 priodict.py
-rush
+rushhour
 ttypes.py
