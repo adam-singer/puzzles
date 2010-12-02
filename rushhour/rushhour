@@ -21,7 +21,7 @@ def road_time(distance, speed):
     else:
         return x
 
-def next_intersection(roadmap,graph,src):
+def next_intersection(roadmap,dist,src):
     speeds = {}
     roads = {}
     g = {}
@@ -42,7 +42,6 @@ def next_intersection(roadmap,graph,src):
                 g[end] = { start: road_t }
             roads[(start, end)] = road
             roads[(end, start)] = road
-    dist, prev = Dijkstra(graph,FINISH)
     dst = min((g[src][node] + dist[node], node) for node in g[src])[1]
     road_to_take = roads[(src,dst)]
     return road_to_take,road_to_take.CurrentSpeed,dst
@@ -86,7 +85,8 @@ while current != FINISH:
     roadmap = client.getRoadConditions()
     if not G:
         G = load(roadmap)
-    road,speed,current = next_intersection(roadmap,G,current)
+    dist,prev = Dijkstra(G,FINISH)
+    road,speed,current = next_intersection(roadmap,dist,current)
     print "at time %s, road taken: %s" % (client.getTime(),current)
     client.takeRoad(road,speed)
 
