@@ -87,7 +87,7 @@ while current != FINISH:
         G = load(roadmap)
     dist,prev = Dijkstra(G,FINISH)
     road,speed,current = next_intersection(roadmap,dist,current)
-    print "at time %s, road taken: %s" % (client.getTime(),current)
+    print "at time %.2f, road taken: %s" % (client.getTime(),current)
     client.takeRoad(road,speed)
 
 #print client.winGame()
