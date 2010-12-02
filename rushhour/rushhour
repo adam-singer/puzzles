@@ -43,12 +43,7 @@ def next_intersection(roadmap,D,src):
             roads[(start, end)] = road
             roads[(end, start)] = road
     dist, prev = Dijkstra(D,FINISH)
-    alt = []
-    for dst in g[src]:
-        alt.append((g[src][dst] + dist[dst], dst))
-    alt.sort()
-    dst = alt[0][1]
-    #dst = min((g[src][node] + dist[dst], node) for node in g[src])[1]
+    dst = min((g[src][node] + dist[node], node) for node in g[src])[1]
     road_to_take = roads[(src,dst)]
     return road_to_take,road_to_take.CurrentSpeed,dst
 
