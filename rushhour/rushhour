@@ -10,8 +10,10 @@ from ttypes import *
 import RushHour
 from dijkstra import shortestPath, Dijkstra
 
+
 START = 'I-START'
 FINISH = 'I-FINISH'
+
 
 def road_time(distance, speed):
     try:
@@ -21,29 +23,29 @@ def road_time(distance, speed):
     else:
         return x
 
+
 def next_intersection(roadmap,dist,src):
-    speeds = {}
-    roads = {}
-    g = {}
+    road_to_take = None 
+    cheapest = sys.maxint
+    dst = src
     for intersection in roadmap.Intersections:
         for road in intersection.ConnectedRoads:
             start = road.StartIntersection
             end = road.EndIntersection
-            if start != src and end != src:
+            if start == src:
+                combined = dist[end] + road_time(road.Distance,road.CurrentSpeed)
+                if combined < cheapest:
+                    cheapest = combined
+                    road_to_take = road            
+                    dst = end
+            elif end == src:
+                combined = dist[start] + road_time(road.Distance,road.CurrentSpeed)
+                if combined < cheapest:
+                    cheapest = combined
+                    road_to_take = road            
+                    dst = start
+            else:
                 continue
-            road_t = road_time(road.Distance,road.CurrentSpeed)
-            if start in g:
-                g[start][end] = road_t
-            else:
-                g[start] = { end: road_t }
-            if end in g:
-                g[end][start] = road_t
-            else:
-                g[end] = { start: road_t }
-            roads[(start, end)] = road
-            roads[(end, start)] = road
-    dst = min((g[src][node] + dist[node], node) for node in g[src])[1]
-    road_to_take = roads[(src,dst)]
     return road_to_take,road_to_take.CurrentSpeed,dst
 
 
