@@ -84,7 +84,7 @@ G = None
 print current
 while current != FINISH:
     roadmap = client.getRoadConditions()
-    if G is None:
+    if not G:
         G = load(roadmap)
     road,speed,current = next_intersection(roadmap,G,current)
     print "at time %s, road taken: %s" % (client.getTime(),current)
