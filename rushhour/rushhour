@@ -32,20 +32,18 @@ def next_intersection(roadmap,dist,src):
         for road in intersection.ConnectedRoads:
             start = road.StartIntersection
             end = road.EndIntersection
-            if start == src:
-                combined = dist[end] + road_time(road.Distance,road.CurrentSpeed)
-                if combined < cheapest:
-                    cheapest = combined
-                    road_to_take = road            
-                    dst = end
-            elif end == src:
-                combined = dist[start] + road_time(road.Distance,road.CurrentSpeed)
-                if combined < cheapest:
-                    cheapest = combined
-                    road_to_take = road            
-                    dst = start
+            candidate = src
+            if src == start:
+                candidate = end
+            elif src == end:
+                candidate = start
             else:
                 continue
+            combined = dist[candidate] + road_time(road.Distance,road.CurrentSpeed)
+            if combined < cheapest:
+                cheapest = combined
+                road_to_take = road            
+                dst = candidate
     return road_to_take,road_to_take.CurrentSpeed,dst
 
 
