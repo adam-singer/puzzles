@@ -39,7 +39,8 @@ def next_intersection(roadmap,dist,src):
                 candidate = start
             else:
                 continue
-            combined = dist[candidate] + road_time(road.Distance,road.CurrentSpeed)
+            combined = dist[candidate] + road_time(road.Distance,
+                    road.CurrentSpeed)
             if combined < cheapest:
                 cheapest = combined
                 road_to_take = road            
