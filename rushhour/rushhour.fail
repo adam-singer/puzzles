@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+# ---------------------------------------------------------------------------- #
+
+import sys
+from collections import defaultdict
+from thrift.transport import TTransport
+from thrift.transport import TSocket
+from thrift.transport import THttpClient
+from thrift.protocol import TBinaryProtocol
+from ttypes import *
+import RushHour
+from dijkstra import Dijkstra
+
+
+START = 'I-START'
+FINISH = 'I-FINISH'
+
+
+def road_time(distance, speed):
+    try:
+        x = (float(distance) / float(speed))
+    except ZeroDivisionError:
+        return float(sys.maxint)
+    else:
+        return x
+
+
+class AverageSpeeds(object):
+    def __init__(self):
+        self.speeds = {}
+        self.totals = defaultdict(int)
+        self.readings = 1
+
+    def update(self,roadmap):
+        for intersection in roadmap.Intersections:
+            for road in intersection.ConnectedRoads:
+                start = road.StartIntersection
+                end = road.EndIntersection
+                road_t = road_time(road.Distance,road.CurrentSpeed)
+                self.totals[(start,end)] += road_t
+                self.totals[(end,start)] += road_t
+                self.speeds[(start,end)] = self.totals[(start,end)] / self.readings
+                self.speeds[(end,start)] = self.totals[(end,start)] / self.readings
+        self.readings += 1        
+
+    def read(self,start,end):
+        return self.speeds[(start,end)]
+
+averages = AverageSpeeds()
+
+def next_intersection(roadmap,src):
+    g = {}
+    roads = {}
+    candidates = set()
+    averages.update(roadmap)
+    for intersection in roadmap.Intersections:
+        for road in intersection.ConnectedRoads:
+            start = road.StartIntersection
+            end = road.EndIntersection
+            road_t = road_time(road.Distance,averages.read(start,end))
+            if start in g:
+                g[start][end] = road_t
+            else:
+                g[start] = { end: road_t }
+            if end in g:
+                g[end][start] = road_t
+            else:
+                g[end] = { start: road_t }
+            roads[(start,end)] = road
+            roads[(end,start)] = road
+            if start == src:
+                candidates.add(end)
+            elif end == src:
+                candidates.add(start)
+            
+    dist,prev = Dijkstra(g,FINISH)
+    dst = min((dist[cand] + g[src][cand], cand) for cand in candidates)[1]
+    return roads[(src,dst)],dst
+
+#host = "thriftpuzzle.facebook.com"
+host = "69.63.177.200"
+port = 9032
+
+socket = TSocket.TSocket(host, port)
+transport = TTransport.TBufferedTransport(socket)
+protocol = TBinaryProtocol.TBinaryProtocol(transport)
+client = RushHour.Client(protocol)
+transport.open()
+
+if not client.registerClient('mlbright@gmail.com', 'Martin-Louis Bright'):
+    sys.stderr.write("WTF: Could not register.\n")
+    sys.exit(1)
+
+
+current = START
+while True:
+    road,current = next_intersection(client.getRoadConditions(),current)
+    client.takeRoad(road,road.CurrentSpeed)
+    print "name: %s, from %s to %s, time %.2f" % (road.Name,
+        road.StartIntersection, road.EndIntersection, client.getTime())
+    if current == FINISH:
+        break
+
+#print client.winGame()
+transport.close()
