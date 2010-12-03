@@ -81,15 +81,16 @@ if not client.registerClient('mlbright@gmail.com', 'Martin-Louis Bright'):
     sys.exit(1)
 
 current = START
-roadmap = client.getRoadConditions()
-G = load(roadmap)
-dist,prev = Dijkstra(G,FINISH)
-while current != FINISH:
+while True:
+    roadmap = client.getRoadConditions()
+    G = load(roadmap)
+    dist,prev = Dijkstra(G,FINISH)
     road,current = next_intersection(roadmap,dist,current)
     client.takeRoad(road,road.CurrentSpeed)
     print "name: %s, from %s to %s, time %.2f" % (road.Name,
         road.StartIntersection, road.EndIntersection, client.getTime())
-    roadmap = client.getRoadConditions()
+    if current == FINISH:
+        break
 
 #print client.winGame()
 transport.close()
