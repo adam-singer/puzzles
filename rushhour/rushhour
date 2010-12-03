@@ -82,16 +82,15 @@ if not client.registerClient('mlbright@gmail.com', 'Martin-Louis Bright'):
     sys.exit(1)
 
 current = START
-G = None
-print current
+roadmap = client.getRoadConditions()
+G = load(roadmap)
+dist,prev = Dijkstra(G,FINISH)
 while current != FINISH:
-    roadmap = client.getRoadConditions()
-    if not G:
-        G = load(roadmap)
-    dist,prev = Dijkstra(G,FINISH)
     road,speed,current = next_intersection(roadmap,dist,current)
-    print "at time %.2f, road taken: %s" % (client.getTime(),current)
     client.takeRoad(road,speed)
+    print "road taken: %s, from %s to %s, time %.2f" % (current,
+        road.StartIntersection, road.EndIntersection, client.getTime())
+    roadmap = client.getRoadConditions()
 
-print client.winGame()
+#print client.winGame()
 transport.close()
