@@ -67,7 +67,8 @@ def load(roadmap):
     return g
 
 
-host = "thriftpuzzle.facebook.com"
+#host = "thriftpuzzle.facebook.com"
+host = "69.63.177.200"
 port = 9032
 
 socket = TSocket.TSocket(host, port)
@@ -92,5 +93,5 @@ while current != FINISH:
     print "at time %.2f, road taken: %s" % (client.getTime(),current)
     client.takeRoad(road,speed)
 
-#print client.winGame()
+print client.winGame()
 transport.close()
