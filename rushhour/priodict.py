@@ -1,10 +1,10 @@
 # Priority dictionary using binary heaps
 # David Eppstein, UC Irvine, 8 Mar 2002
 
-class priorityDictionary(dict):
+class PriorityDictionary(dict):
 
     def __init__(self):
-        '''Initialize priorityDictionary by creating binary heap
+        '''Initialize PriorityDictionary by creating binary heap
         of pairs (value,key).  Note that changing or removing a dict entry will
         not remove the old pair from the heap until it is found by smallest() or
         until the heap is rebuilt.'''
@@ -14,7 +14,7 @@ class priorityDictionary(dict):
     def smallest(self):
         '''Find smallest item after removing deleted items from heap.'''
         if len(self) == 0:
-            raise IndexError, "smallest of empty priorityDictionary"
+            raise IndexError, "smallest of empty PriorityDictionary"
         heap = self.__heap
         while heap[0][1] not in self or self[heap[0][1]] != heap[0][0]:
             lastItem = heap.pop()
@@ -31,7 +31,7 @@ class priorityDictionary(dict):
         return heap[0][1]
     
     def __iter__(self):
-        '''Create destructive sorted iterator of priorityDictionary.'''
+        '''Create destructive sorted iterator of PriorityDictionary.'''
         def iterfn():
             while len(self) > 0:
                 x = self.smallest()

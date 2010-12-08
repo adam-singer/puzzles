@@ -2,9 +2,9 @@
 # David Eppstein, UC Irvine, 4 April 2002
 
 # http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/117228
-from priodict import priorityDictionary
+from priodict import PriorityDictionary
 
-def Dijkstra(G,start,end=None):
+def dijkstra(G,start,end=None):
     """
     Find shortest paths from the start vertex to all
     vertices nearer than or equal to the end.
@@ -49,7 +49,7 @@ def Dijkstra(G,start,end=None):
 
     D = {}  # dictionary of final distances
     P = {}  # dictionary of predecessors
-    Q = priorityDictionary()   # est.dist. of non-final vert.
+    Q = PriorityDictionary()   # est.dist. of non-final vert.
     Q[start] = 0
     
     for v in Q:
@@ -67,7 +67,7 @@ def Dijkstra(G,start,end=None):
     
     return (D,P)
             
-def prevPath(P,start,end):
+def prev_path(P,start,end):
     Path = []
     while True:
         Path.append(end)
@@ -77,7 +77,7 @@ def prevPath(P,start,end):
     Path.reverse()
     return Path
 
-def shortestPath(G,start,end):
+def shortest_path(G,start,end):
     """
     Find a single shortest path from the given start vertex
     to the given end vertex.
@@ -86,5 +86,5 @@ def shortestPath(G,start,end):
     the shortest path.
     """
 
-    D,P = Dijkstra(G,start,end)
-    return prevPath(P,start,end)
+    D,P = dijkstra(G,start,end)
+    return prev_path(P,start,end)
