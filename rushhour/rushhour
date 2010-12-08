@@ -8,7 +8,7 @@ from thrift.transport import THttpClient
 from thrift.protocol import TBinaryProtocol
 from ttypes import *
 import RushHour
-from dijkstra import shortestPath, Dijkstra
+from dijkstra import dijkstra
 
 
 START = 'I-START'
@@ -84,7 +84,7 @@ current = START
 while True:
     roadmap = client.getRoadConditions()
     G = load(roadmap)
-    dist,prev = Dijkstra(G,FINISH)
+    dist,prev = dijkstra(G,FINISH)
     road,current = next_intersection(roadmap,dist,current)
     client.takeRoad(road,road.CurrentSpeed)
     print "name: %s, from %s to %s, time %.2f" % (road.Name,
