@@ -1,4 +1,4 @@
 #!/bin/bash
 
-rm *.pyc
-rm *.tar.gz
+rm -f *.pyc
+rm -f *.tar.gz
