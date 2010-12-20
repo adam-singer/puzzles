@@ -8,7 +8,7 @@ from thrift.transport import THttpClient
 from thrift.protocol import TBinaryProtocol
 from ttypes import *
 import RushHour
-from dijkstra import Dijkstra
+from dijkstra import dijkstra
 
 
 START = 'I-START'
@@ -43,7 +43,7 @@ def next_intersection(roadmap,src):
             roads[(start,end)] = road
             roads[(end,start)] = road
             
-    dist,prev = Dijkstra(g,FINISH,src)
+    dist,prev = dijkstra(g,FINISH,src)
     return roads[(src,prev[src])],prev[src]
 
 #host = "thriftpuzzle.facebook.com"

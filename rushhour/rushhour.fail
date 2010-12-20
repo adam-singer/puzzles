@@ -9,7 +9,7 @@ from thrift.transport import THttpClient
 from thrift.protocol import TBinaryProtocol
 from ttypes import *
 import RushHour
-from dijkstra import Dijkstra
+from dijkstra import dijkstra
 
 
 START = 'I-START'
@@ -73,7 +73,7 @@ def next_intersection(roadmap,src):
             elif end == src:
                 candidates.add(start)
             
-    dist,prev = Dijkstra(g,FINISH)
+    dist,prev = dijkstra(g,FINISH)
     dst = min((dist[cand] + g[src][cand], cand) for cand in candidates)[1]
     return roads[(src,dst)],dst
 
